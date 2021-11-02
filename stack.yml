@@ -1,0 +1,51 @@
+version: 0.1.0                                            
+
+name: Test 3loka           
+description: Test 3loka       
+
+branding:                                              
+ icon: 'package'
+ color: 'black'
+
+inputs:                                                
+    
+  - name: NODE_VERSION                                 
+    default: v12.22.4                              
+    description: NODE_VERSION for nodejs stack         
+    validvalues:                                       
+    - v12.22.4
+    - v14.17.4
+    
+  - name: GITHUB_PAT
+    description: GitHub PAT with repo and workflow permissions
+    is-secret: true
+    required: true
+
+configs:                                               
+  repo-metadata:
+     parameters:
+       description: 'Setup your Nextjs site in Github Pages'
+       secrets: 
+         - name: GH_PAT
+           value: ${{inputs.GITHUB_PAT}}
+       topics:                                            
+       - nextjs
+       - github-pages
+
+  branches:                                            
+    - name: main
+      parameters:
+        dismiss-stale-reviews: true                      
+        required-approving-review-count: 1
+        require-code-owner-reviews: true
+
+  environments:                                        
+    - name: development
+      parameters: 
+        protected-branches: false
+        custom-branch-policies:
+          - main
+          - releases/*
+
+init:
+ uses: ".github/workflows/stack-init.yaml"
