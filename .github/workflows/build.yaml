@@ -1,0 +1,32 @@
+name: "build"
+
+on: [push]
+
+env:
+  NODE_VERSION: '___NODE_VERSION___'
+
+jobs:
+  vercel: 
+    runs-on: ubuntu-latest
+    name: "build nextjs app"
+    
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: use node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org/
+
+      - name: install dependencies
+        run: npm install
+      
+      - name: run build
+        run: npm run build
+
+      - name: run tests
+        run: npm test
+        env:
+          CI: true
+          FORCE_COLOR: 1

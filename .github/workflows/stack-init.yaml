@@ -1,0 +1,106 @@
+name: "provision stack build/ deploy for ghpages"
+
+on:
+  workflow_dispatch:
+    inputs:
+      NODE_VERSION:
+        required: true
+        description: 'nodejs version to be used'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    environment:
+       name: development
+       url: ${{ steps.get-url.outputs.your_site }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          
+      - name: use node.js ${{ github.event.inputs.NODE_VERSION }} 
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ github.event.inputs.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org/
+          
+      - name: substitute user inputs in the workflow files
+        uses: microsoft/variable-substitution@v1 
+        with:
+          files: '.github/workflows/build.yaml, .github/workflows/deploy.yaml'
+        env:
+          env.NODE_VERSION: '${{ github.event.inputs.NODE_VERSION }}'
+
+      - name: stacks framework code generation
+        run: |
+          npx create-next-app nextjs-scaffold --use-npm --example "https://github.com/vercel/next-learn/tree/master/basics/learn-starter"
+          cp -r nextjs-scaffold/* .
+          rm -rf nextjs-scaffold
+          
+      - name: Configure git
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
+          
+      - name: Commit generated code and initialize workflows
+        run: |
+          git add .
+          git commit -m "Generate framework code and initialize workflows"
+          git push origin -u main
+
+      - name: build
+        run: |
+          npm install -g
+          npm run build 
+          npm run env -- next export -o build
+          
+      - name: deploy
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: build
+          CLEAN: true
+     
+      - name: Enable GitHub Pages
+        uses: actions/github-script@v4
+        continue-on-error: true # API fails when the GitHub pages is already deployed
+        with:
+          github-token: ${{ secrets.GH_PAT }}
+          script: |
+            github.repos.createPagesSite({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              source: {
+                branch: 'gh-pages',
+                path: '/'
+              }
+            })
+        
+      - name: Website URL
+        run: |
+          echo "Website URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          
+      - name: Wait for website to come online
+        timeout-minutes: 5 
+        id: get-url
+        run: |
+          echo "Waiting for the website to come alive..."
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          sleep 20
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" $URL)
+          echo "STATUSCODE: $STATUS_CODE"
+          while [ $STATUS_CODE -ne 200 ]
+          do
+            sleep 10
+            STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" $URL)
+            echo "STATUSCODE: $STATUS_CODE"
+          done
+          echo "Website is up and running..."
+          echo "Browse here: $URL"       
+          echo "::set-output name=your_site::$URL"
+          
+  
