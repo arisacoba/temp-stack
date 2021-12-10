@@ -3,7 +3,9 @@ version: 0.1.0
 name: TS Foundation           
 description: TS       
 
-branding:                                              
+branding:
+  icon: 'cloud'
+  color: 'red'
  # icon: 'package'
  # color: 'black'
 
