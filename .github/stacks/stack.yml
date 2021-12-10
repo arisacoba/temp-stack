@@ -4,8 +4,8 @@ name: TS Foundation
 description: TS       
 
 branding:
-  icon: 'cloud'
-  color: 'red'
+ # icon: 'cloud'
+ # color: 'red'
  # icon: 'package'
  # color: 'black'
 
