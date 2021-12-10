@@ -4,8 +4,8 @@ name: TS Foundation
 description: TS       
 
 branding:                                              
- icon: 'package'
- color: 'black'
+ # icon: 'package'
+ # color: 'black'
 
 inputs:                                                
     
